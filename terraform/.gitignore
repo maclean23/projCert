@@ -1,0 +1,11 @@
+# Ignore environment files
+.env
+aws_credentials
+
+# Ignore Terraform State files, which can contain sensitive data
+*.tfstate
+*.tfstate.backup
+
+# Ignore other sensitive files
+secrets.json
+config.yml

@@ -2,14 +2,12 @@
 variable "aws_access_key" {
   description = "AWS Access Key ID"
   type        = string
-  default = AKIAYS2NVIVH3WWKEB6U
 }
 
 # AWS Secret Access Key
 variable "aws_secret_key" {
   description = "AWS Secret Access Key"
   type        = string
-  default = WYIl3HSAeOooblDl8hyQeYDoPHWDG3ZiPNY+VxSt
 }
 
 # AWS Region
@@ -37,7 +35,7 @@ variable "subnet_cidr_block" {
 variable "availability_zone" {
   description = "Availability zone to deploy resources in"
   type        = string
-  default     = "us-east-1a"
+  default     = "eu-central-2a"
 }
 
 # EKS Cluster Role ARN
