@@ -1,0 +1,105 @@
+pipeline {
+    agent any
+
+    environment {
+        REGISTRY = "maclean23"
+        IMAGE_NAME = "${REGISTRY}/my-php-app"
+        KUBECONFIG = credentials('kubeconfig')          // Kubernetes credentials for Jenkins
+        TERRAFORM_CREDENTIALS = credentials('aws-credentials')  // AWS credentials for Terraform
+    }
+
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                script {
+                    // Clean the workspace before starting
+                    sh '''
+                    if [ -d "./projCert" ]; then
+                        rm -rf ./projCert
+                    fi
+                    '''
+                }
+            }
+        }
+
+        stage('Clone Repository') {
+            steps {
+                script {
+                    // Clone the repository and checkout the 'development' branch
+                    sh '''
+                    git clone git@github.com:maclean23/projCert.git
+                    cd projCert
+                    git checkout development
+                    '''
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Build the Docker image
+                    docker.build("${IMAGE_NAME}:latest")
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    // Push the Docker image to the registry
+                    docker.withRegistry("https://${REGISTRY}", 'docker-credentials') {
+                        docker.image("${IMAGE_NAME}:latest").push()
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                script {
+                    // Initialize Terraform within the 'terraform' directory
+                    dir('terraform') {
+                        withCredentials([[
+                            $class: 'AmazonWebServicesCredentialsBinding',
+                            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                        ]]) {
+                            sh 'terraform init'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Terraform Apply') {
+            steps {
+                script {
+                    // Apply Terraform changes
+                    dir('terraform') {
+                        sh 'terraform apply -auto-approve'
+                    }
+                }
+            }
+        }
+
+        stage('Kubernetes Deploy') {
+            steps {
+                script {
+                    // Deploy the app to Kubernetes using the k8s deployment YAML file
+                    kubernetesDeploy(
+                        configs: 'k8s/deployment.yaml',
+                        kubeconfigId: 'kubeconfig'
+                    )
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean the workspace after the pipeline finishes
+            cleanWs()
+        }
+    }
+}
